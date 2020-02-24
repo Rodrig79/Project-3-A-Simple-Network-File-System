@@ -14,6 +14,30 @@ static const string PROMPT_STRING = "NFS> ";	// shell prompt
 void Shell::mountNFS(string fs_loc) {
 	//create the socket cs_sock and connect it to the server and port specified in fs_loc
 	//if all the above operations are completed successfully, set is_mounted to true  
+	int portno = 10160;
+
+  struct sockaddr_in serv_addr;
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(portno);
+  
+  if ((cs_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+      printf("Socket Creation Error");
+      return -1;
+  };
+
+  if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0){
+    printf("Invalid address/ Address not supported");
+    return -1;
+  }
+
+  if(connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
+    printf("Connection failed");
+    return -1;
+  }
+  else {
+    is_mounted = true;
+  }
+
 }
 
 // Unmount the network file system if it was mounted

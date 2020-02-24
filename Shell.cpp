@@ -51,7 +51,10 @@ void Shell::unmountNFS() {
 
 // Remote procedure call on mkdir
 void Shell::mkdir_rpc(string dname) {
-  // to implement
+  // to implement\
+	dirblock_t dname;
+	dname.magic = DIR_MAGIC_NUM;
+  
 }
 
 // Remote procedure call on cd

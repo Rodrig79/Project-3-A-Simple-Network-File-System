@@ -43,6 +43,9 @@ void Shell::mountNFS(string fs_loc) {
 // Unmount the network file system if it was mounted
 void Shell::unmountNFS() {
 	// close the socket if it was mounted
+	if(is_mounted){
+    		close(cs_sock);
+  	}
 }
 
 // Remote procedure call on mkdir

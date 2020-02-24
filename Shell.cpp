@@ -45,6 +45,7 @@ void Shell::unmountNFS() {
 	// close the socket if it was mounted
 	if(is_mounted){
     		close(cs_sock);
+		is_mounted = false;
   	}
 }
 

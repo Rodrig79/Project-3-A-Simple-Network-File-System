@@ -54,7 +54,9 @@ void Shell::mkdir_rpc(string dname) {
   // to implement\
 	dirblock_t dname;
 	dname.magic = DIR_MAGIC_NUM;
-  
+ 	
+	inode_t inode;
+	inode.magic = INODE_MAGIC_NUM;
 }
 
 // Remote procedure call on cd

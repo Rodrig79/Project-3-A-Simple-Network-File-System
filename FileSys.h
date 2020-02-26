@@ -5,6 +5,7 @@
 #define FILESYS_H
 
 #include "BasicFileSys.h"
+#include "Blocks.h"
 
 class FileSys {
   
@@ -54,7 +55,25 @@ class FileSys {
 
     int fs_sock;  // file server socket
 
+	dirblock_t curr_dir_block;
+	
     // Additional private variables and Helper functions - if desired
+	
+	//returns block number of the corresponding name in the current directory
+	//returns -1 if it doesn't exist
+	short get_block_index(const char* name);
+	
+	void send_message(std::string message);
+	
+	const char* ERR_500 = "500 File is not a directory";
+	const char* ERR_501 = "501 File is a directory";
+	const char* ERR_502 = "502 File exists";
+	const char* ERR_503 = "503 File does not exist";
+	const char* ERR_504 = "504 File name is too long";
+	const char* ERR_505 = "505 Disk is full";
+	const char* ERR_506 = "506 Directory is full";
+	const char* ERR_507 = "507 Directory is not empty";
+	const char* ERR_508 = "508 Append exceeds maximum file size";
 };
 
 #endif 

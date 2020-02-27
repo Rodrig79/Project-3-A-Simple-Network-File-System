@@ -101,7 +101,8 @@ void FileSys::rmdir(const char *name)
 		send_message(ERR_507);
 		return;
 	}
-	std::move(curr_dir_block.dir_entries + i + 1, curr_dir_block.dir_entries + curr_dir_block.num_entries,curr_dir_block.dir_entries +  i);
+	//this shit don't work for copy
+	std::swap(curr_dir_block.dir_entries[rem], curr_dir_block.dir_entries[curr_dir_block.num_entries - 1]);
 	curr_dir_block.num_entries--;
 	bfs.reclaim_block(rem);
 }
@@ -202,28 +203,88 @@ void FileSys::cat(const char *name)
 	short inode_index;
 	inode_t inode_block;
 	datablock_t data_block;
-	char* file_data;
+	int index = 0;
+	int offset = 0;
+	int block_num = 0;
 	if((inode_index = get_block_index(name)) == -1) {
 		send_message(ERR_503);
 		return;
 	}
-	bfs.read_block(curr_dir_block.dir_entries[inode_index].block_num, &inode_block);
+	bfs.read_block(curr_dir_block.dir_entries[inode_index].block_num, (void*) &inode_block);
 	if(inode_block.magic != INODE_MAGIC_NUM) {
 		send_message(ERR_501);
 		return;
 	}
-	
-	while()
+	char file_data[inode_block.size + 1];
+	for(int i = 0; i < inode_block.size; i++) {
+		if(offset == 0) {
+			bfs.read_block(inode_block.blocks[block_num++], (void*) &data_block);
+		}
+		file_data[index++] = data_block.data[offset++];
+		offset = offset % BLOCK_SIZE;
+	}
+	file_data[index] = '\0';
+	send_message(file_data);
 }
 
 // display the first N bytes of the file
 void FileSys::head(const char *name, unsigned int n)
 {
+	short inode_index;
+	inode_t inode_block;
+	datablock_t data_block;
+	int index = 0;
+	int offset = 0;
+	int block_num = 0;
+	if((inode_index = get_block_index(name)) == -1) {
+		send_message(ERR_503);
+		return;
+	}
+	bfs.read_block(curr_dir_block.dir_entries[inode_index].block_num, (void*) &inode_block);
+	if(inode_block.magic != INODE_MAGIC_NUM) {
+		send_message(ERR_501);
+		return;
+	}
+	n = (n > inode_block.size) ? inode_block.size : n;
+	char file_data[n + 1];
+	for(int i = 0; i < n; i++) {
+		if(offset == 0) {
+			bfs.read_block(inode_block.blocks[block_num++], (void*) &data_block);
+		}
+		file_data[index++] = data_block.data[offset++];
+		offset = offset % BLOCK_SIZE;
+	}
+	file_data[index] = '\0';
+	send_message(file_data);
 }
 
 // delete a data file
 void FileSys::rm(const char *name)
 {
+	short inode_index;
+	short inode_block_num;
+	inode_t inode_block;
+	int block_num;
+	
+	if((inode_index = get_block_index(name)) == -1) {
+		send_message(ERR_503);
+		return;
+	}
+	inode_block_num = curr_dir_block.dir_entries[inode_index].block_num;
+	bfs.read_block(inode_block_num, (void*) &inode_block);
+	if(inode_block.magic != INODE_MAGIC_NUM) {
+		send_message(ERR_501);
+		return;
+	}
+	
+	std::swap(curr_dir_block.dir_entries[inode_index], curr_dir_block.dir_entries[curr_dir_block.num_entries - 1]);
+	curr_dir_block.num_entries--;
+	block_num = (inode_block.size == 0) ? 0 : inode_block.size - 1 / BLOCK_SIZE + 1;
+	
+	for(int i = 0; i < block_num; i++) {
+		bfs.reclaim_block(inode_block.blocks[i]);
+	}
+	bfs.reclaim_block(inode_block_num);
 }
 
 // display stats about file or directory

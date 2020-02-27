@@ -4,7 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
+#include <cstring>
+#include <cstdlib>
 using namespace std;
 
 #include "Shell.h"
@@ -43,7 +44,7 @@ void Shell::mountNFS(string fs_loc)
   else{
     printf("Socket created successfully\n");
   }
-  
+
   //specify an address for the socket
   struct sockaddr_in server_address;
   server_address.sin_family = AF_INET;
@@ -76,39 +77,73 @@ void Shell::mountNFS(string fs_loc)
   // Remote procedure call on mkdir
   void Shell::mkdir_rpc(string dname)
   {
-    // to implement
-    dirblock_t dname;
-    dname.magic = DIR_MAGIC_NUM;
-  }
+    string message = "mkdir " + dname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+	
+    //TODO: Implement receive  
+  	return;
+	}
+  
 
   // Remote procedure call on cd
   void Shell::cd_rpc(string dname)
   {
-    // to implement
+    string message = "cd " + dname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on home
   void Shell::home_rpc()
   {
-    // to implement
+    string message = "home" + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on rmdir
   void Shell::rmdir_rpc(string dname)
   {
-    // to implement
+    string message = "rmdir " + dname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on ls
   void Shell::ls_rpc()
   {
-    // to implement
+    string message = "ls " + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on create
   void Shell::create_rpc(string fname)
   {
-    // to implement
+    string message = "create " + fname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on append
@@ -120,7 +155,13 @@ void Shell::mountNFS(string fs_loc)
   // Remote procesure call on cat
   void Shell::cat_rpc(string fname)
   {
-    // to implement
+    string message = "cat " + fname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on head
@@ -132,13 +173,25 @@ void Shell::mountNFS(string fs_loc)
   // Remote procedure call on rm
   void Shell::rm_rpc(string fname)
   {
-    // to implement
+    string message = "rm " + fname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Remote procedure call on stat
   void Shell::stat_rpc(string fname)
   {
-    // to implement
+    string message = "stat " + fname + "\r\n";
+    char* server_message = &message[0];
+    send(cs_sock, server_message, sizeof(server_message), 0);
+		
+    //TODO: Implement receive
+    
+    return;
   }
 
   // Executes the shell until the user quits.

@@ -13,55 +13,51 @@ using namespace std;
 static const string PROMPT_STRING = "NFS> "; // shell prompt
 
 // Mount the network file system with server name and port number in the format of server:port
-int Shell::mountNFS(string fs_loc)
+void Shell::mountNFS(string fs_loc)
 {
   //create the socket cs_sock and connect it to the server and port specified in fs_loc
   //if all the above operations are completed successfully, set is_mounted to true
   //port should be 10160
   //Parse fs_loc from Server:Port
     unsigned parseIndex = fs_loc.find(":"); //finds index of where the colon appears
-    string ipAddress = fs_loc.substr(0,parseIndex);
-    string port = fs_loc.substr(parseIndex + 1, sizeof(fs_loc));
-
+    string ipAddressStr = fs_loc.substr(0,parseIndex);
+    string portStr = fs_loc.substr(parseIndex + 1, sizeof(fs_loc));
+    stringstream stringToInt(portStr);
+    int port = 0;
+    stringToInt >> port;
+    
+    stringstream stringToInt2(ipAddressStr);
+    int ipAddress = 0;
+    stringToInt2 >> ipAddress;
+    
   //creating socket
 
-  int cs_sock = socket(AF_INET, SOCK_STREAM, 0);
+  int cs_sock = socket(AF_INET, SOCK_STREAM, 0); 
+  //sock_stream = TCP socket
+
 
   if (cs_sock < 0)
   {
-    printf("Socket Creation Error");
-    return -1;
+    printf("Socket Creation Error\n");
   }
-
-
-  struct sockaddr_in serv_addr;
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(port);
-
-  /*inet_pton converts IPv4 and IPv6 addresses from text to binary form
-    returns 1 on success (network address was successfully converted).  
-    
-    0 is returned if src does not contain a character string
-    representing a valid network address in the specified address family.
-    
-    If af does not contain a valid address family, -1 is returned and
-    errno is set to EAFNOSUPPORT. */
-
-  if (inet_pton(AF_INET, ipAddress, &serv_addr.sin_addr) <= 0)
-  {
-    printf("Invalid address/ Address not supported");
-    return -1;
+  else{
+    printf("Socket created successfully\n");
   }
+  
+  //specify an address for the socket
+  struct sockaddr_in server_address;
+  server_address.sin_family = AF_INET;
+  server_address.sin_port = htons(port);
+  server_address.sin_addr.s_addr = ipAddress;
 
-  if (connect(cs_sock, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+  if (connect(cs_sock, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
   {
-    printf("Connection failed");
-    return -1;
+    cerr << "Connection to remote socket failed." << endl;
   }
   else
   {
+    printf("Connection to remote socket successful");
     is_mounted = true;
-    return 0;
   }
 }
 

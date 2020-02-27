@@ -17,8 +17,14 @@ int Shell::mountNFS(string fs_loc)
 {
   //create the socket cs_sock and connect it to the server and port specified in fs_loc
   //if all the above operations are completed successfully, set is_mounted to true
+  //port should be 10160
+  //Parse fs_loc from Server:Port
+    unsigned parseIndex = fs_loc.find(":"); //finds index of where the colon appears
+    string ipAddress = fs_loc.substr(0,parseIndex);
+    string port = fs_loc.substr(parseIndex + 1, sizeof(fs_loc));
 
   //creating socket
+
   int cs_sock = socket(AF_INET, SOCK_STREAM, 0);
 
   if (cs_sock < 0)
@@ -27,8 +33,6 @@ int Shell::mountNFS(string fs_loc)
     return -1;
   }
 
-  int port = 10160;
-  string ipAddress = "127.0.0.1";
 
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
@@ -43,7 +47,7 @@ int Shell::mountNFS(string fs_loc)
     If af does not contain a valid address family, -1 is returned and
     errno is set to EAFNOSUPPORT. */
 
-  if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
+  if (inet_pton(AF_INET, ipAddress, &serv_addr.sin_addr) <= 0)
   {
     printf("Invalid address/ Address not supported");
     return -1;

@@ -177,6 +177,7 @@ void FileSys::create(const char *name)
 // append data to a data file
 void FileSys::append(const char *name, const char *data)
 {
+	cout << "appending: " << data << "to: " << name << endl;
 	short inode;
 	inode_t inode_block;
 	int data_index;
@@ -194,6 +195,10 @@ void FileSys::append(const char *name, const char *data)
 	data_index = inode_block.size / BLOCK_SIZE;
 	data_offset = inode_block.size % BLOCK_SIZE;
 	int i = 0;
+	if(inode_block.size == 0) {
+		cout << "creating new block for data" << endl;
+		inode_block.blocks[0] = bfs.get_free_block();
+	}
 	bfs.read_block(inode_block.blocks[data_index], (void*) &curr_block);
 	while(data[i] != '\0'){
 		if(data_offset == BLOCK_SIZE) {
@@ -202,22 +207,26 @@ void FileSys::append(const char *name, const char *data)
 			//ask which one of these errors to return first
 			if(data_index == MAX_DATA_BLOCKS) {
 				inode_block.size = data_index * BLOCK_SIZE;
-				bfs.write_block(inode, (void*) &inode_block);
+				bfs.write_block(curr_dir_block.dir_entries[inode].block_num, (void*) &inode_block);
 				send_message(ERR_508);
 				return;
 			}
 			if((inode_block.blocks[data_index] = bfs.get_free_block()) == 0) {
 				inode_block.size = data_index * BLOCK_SIZE;
-				bfs.write_block(inode, (void*) &inode_block);
+				bfs.write_block(curr_dir_block.dir_entries[inode].block_num, (void*) &inode_block);
 				send_message(ERR_505);
 				return;
 			}
 			curr_block = datablock_t();
 		}
+		cout << "copying: " << data[i] << endl;
 		curr_block.data[data_offset++] = data[i++];
 	}
+	bfs.write_block(inode_block.blocks[data_index], (void*) &curr_block);
+	cout << "data_index: " << data_index << " data_offset: " << data_offset << endl;
 	inode_block.size = data_index * BLOCK_SIZE + data_offset;
-	bfs.write_block(inode, (void*) &inode_block);
+	cout << "inode_block size: " << inode_block.size << endl;
+	bfs.write_block(curr_dir_block.dir_entries[inode].block_num, (void*) &inode_block);
 	send_message("OKAY");
 }
 

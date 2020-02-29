@@ -2,9 +2,11 @@
 // Implements the file system commands that are available to the shell.
 
 #include <cstring>
+#include <sstream>
 #include <iostream>
 #include <unistd.h>
 #include <algorithm>
+#include <sys/socket.h>
 using namespace std;
 
 #include "FileSys.h"
@@ -13,6 +15,7 @@ using namespace std;
 
 // mounts the file system
 void FileSys::mount(int sock) {
+	cout << "file system using socket of: " << sock << endl;
   bfs.mount();
   curr_dir = 1; //by default current directory is home directory, in disk block #1
   bfs.read_block(curr_dir, (void*) &curr_dir_block);
@@ -29,13 +32,14 @@ void FileSys::unmount() {
 // make a directory
 void FileSys::mkdir(const char *name)
 {
+	cout << "running mkdir " << name << endl;
 	short newBlock;
 	dirblock_t newDir;
 	
 	if(get_block_index(name) >= 0){
 		send_message(ERR_502);
 		return;
-	} if(std::strlen(name) > MAX_FNAME_SIZE){
+	} if(strlen(name) > MAX_FNAME_SIZE){
 		send_message(ERR_504);
 		return;
 	} if(curr_dir_block.num_entries == MAX_DIR_ENTRIES){
@@ -47,12 +51,18 @@ void FileSys::mkdir(const char *name)
 	}
 	
 	newDir.num_entries = 0;
+	newDir.magic = DIR_MAGIC_NUM;
 	bfs.write_block(newBlock, &newDir);
 	
-	for(int i = 0; name[i] != '\0';i++)
+	int i = 0;
+	for(i = 0; name[i] != '\0'; i++)
 		curr_dir_block.dir_entries[curr_dir_block.num_entries].name[i] = name[i];
+	curr_dir_block.dir_entries[curr_dir_block.num_entries].name[i] = name[i];
+	
 	curr_dir_block.dir_entries[curr_dir_block.num_entries].block_num = newBlock;
 	curr_dir_block.num_entries++;
+	bfs.write_block(curr_dir, &curr_dir_block);
+	send_message("OKAY");
 }
 
 // TODO: entry not found response
@@ -67,18 +77,22 @@ void FileSys::cd(const char *name)
 		return;
 	}
 	bfs.read_block(curr_dir_block.dir_entries[i].block_num, (void*) &new_dir_block);
+	cout << "moving to: " << curr_dir_block.dir_entries[i].name << endl;
+	cout << new_dir_block.magic << " " << DIR_MAGIC_NUM << endl;
 	if(new_dir_block.magic != DIR_MAGIC_NUM){
 		send_message(ERR_500);
 		return;
 	}
 	curr_dir = curr_dir_block.dir_entries[i].block_num;
 	curr_dir_block = new_dir_block;
+	send_message("OKAY");
 }
 
 // switch to home directory
 void FileSys::home() {
 	curr_dir = 1;
 	bfs.read_block(curr_dir, (void*) &curr_dir_block);
+	send_message("OKAY");
 }
 
 //TODO: make sure directory is empty
@@ -101,22 +115,24 @@ void FileSys::rmdir(const char *name)
 		send_message(ERR_507);
 		return;
 	}
-	//this shit don't work for copy
-	std::swap(curr_dir_block.dir_entries[rem], curr_dir_block.dir_entries[curr_dir_block.num_entries - 1]);
+	swap(curr_dir_block.dir_entries[rem], curr_dir_block.dir_entries[curr_dir_block.num_entries - 1]);
 	curr_dir_block.num_entries--;
+	bfs.write_block(curr_dir, (void*) &curr_dir_block);
 	bfs.reclaim_block(rem);
+	send_message("OKAY");
 }
 
 // list the contents of current directory
 //TODO: remove extra space at end
 void FileSys::ls()
 {
-	std::string file_list = "";
+	cout << "running ls" << endl;
+	string file_list = "*";
 	for(int i = 0; i < curr_dir_block.num_entries; i++){
 		file_list.append(curr_dir_block.dir_entries[i].name);
-		file_list += " ";
+		file_list += "*";
 	}
-	file_list += "\n";
+	cout << "result of ls is: " << file_list << endl;
 	send_message(file_list);
 }
 // TODO: error message if full
@@ -125,12 +141,12 @@ void FileSys::create(const char *name)
 {
 	inode_t new_file;
 	short new_block;
-	
+	cout << get_block_index(name) << endl;
 	if(get_block_index(name) >= 0){
 		send_message(ERR_502);
 		return;
 	}
-	if(std::strlen(name) > MAX_FNAME_SIZE){
+	if(strlen(name) > MAX_FNAME_SIZE){
 		send_message(ERR_504);
 		return;
 	}
@@ -143,11 +159,18 @@ void FileSys::create(const char *name)
 		return;
 	}
 	new_file.size = 0;
+	new_file.magic = INODE_MAGIC_NUM;
 	bfs.write_block(new_block, &new_file);
 	
-	std::copy(name, name + std::strlen(name), curr_dir_block.dir_entries[curr_dir_block.num_entries].name);
+	int i = 0;
+	for(i = 0; name[i] != '\0'; i++)
+		curr_dir_block.dir_entries[curr_dir_block.num_entries].name[i] = name[i];
+	curr_dir_block.dir_entries[curr_dir_block.num_entries].name[i] = name[i];
+	
 	curr_dir_block.dir_entries[curr_dir_block.num_entries].block_num = new_block;
 	curr_dir_block.num_entries++;
+	bfs.write_block(curr_dir, (void*) &curr_dir_block);
+	send_message("OKAY");
 }
 
 // TODO: file doesn't exist, file too big
@@ -195,6 +218,7 @@ void FileSys::append(const char *name, const char *data)
 	}
 	inode_block.size = data_index * BLOCK_SIZE + data_offset;
 	bfs.write_block(inode, (void*) &inode_block);
+	send_message("OKAY");
 }
 
 // display the contents of a data file
@@ -224,7 +248,7 @@ void FileSys::cat(const char *name)
 		offset = offset % BLOCK_SIZE;
 	}
 	file_data[index] = '\0';
-	send_message(file_data);
+	send_message(string(file_data));
 }
 
 // display the first N bytes of the file
@@ -277,30 +301,68 @@ void FileSys::rm(const char *name)
 		return;
 	}
 	
-	std::swap(curr_dir_block.dir_entries[inode_index], curr_dir_block.dir_entries[curr_dir_block.num_entries - 1]);
+	swap(curr_dir_block.dir_entries[inode_index], curr_dir_block.dir_entries[curr_dir_block.num_entries - 1]);
 	curr_dir_block.num_entries--;
+	bfs.write_block(curr_dir, (void*) &curr_dir_block);
 	block_num = (inode_block.size == 0) ? 0 : inode_block.size - 1 / BLOCK_SIZE + 1;
 	
 	for(int i = 0; i < block_num; i++) {
 		bfs.reclaim_block(inode_block.blocks[i]);
 	}
 	bfs.reclaim_block(inode_block_num);
+	send_message("OKAY");
 }
 
-// display stats about file or directory
-void FileSys::stat(const char *name)
-{
+void FileSys::stat(const char* name) {
+	dirblock_t d;
+	inode_t i;
+	short index;
+	stringstream message;
+	if((index = get_block_index(name)) == -1) {
+		send_message(ERR_503);
+		return;
+	}
+	bfs.read_block(curr_dir_block.dir_entries[index].block_num, (void*) &d);
+	if(d.magic == DIR_MAGIC_NUM) {
+		message << "File Name:     " << name << "\n";
+		message << "Block Number:     " << curr_dir_block.dir_entries[index].block_num;
+	} else {
+		bfs.read_block(curr_dir_block.dir_entries[index].block_num, (void*) &i);
+		message << "Inode Block:     " << curr_dir_block.dir_entries[index].block_num << "\n";
+		message << "Bytes in File:     " << i.size << "\n";
+		message << "Number of Blocks:     " << i.size / BLOCK_SIZE << "\n";
+		message << "First Number of Blocks:     " << i.blocks[0];
+	}
+	send_message(message.str());
 }
 
 // HELPER FUNCTIONS (optional)
 short FileSys::get_block_index(const char* name) {
 	for(int i = 0; i < curr_dir_block.num_entries; i++) {
-		if(std::strcmp(curr_dir_block.dir_entries[i].name, name))
+		cout << curr_dir_block.dir_entries[i].name << " " << name << endl;
+		cout << strcmp(curr_dir_block.dir_entries[i].name, name) << endl;
+		if(strcmp(curr_dir_block.dir_entries[i].name, name) == 0){
+			cout << "block index is: " << i << endl;
 			return i;
+		}
 	}
+	cout << "block index is: " << -1 << endl;
 	return -1;
 }
 
-void FileSys::send_message(std::string message) {
-	
+//debug recieving of blank messages, it broke again
+void FileSys::send_message(string message) {
+	cout << "SENDING MESSAGE: $" << message << "$" << endl;
+	const char* buf = (message + "\r\n").c_str();
+	int len = message.length();
+	int sent_data = 0;
+	int recently_sent_data = 0;
+	while(sent_data < len){
+		recently_sent_data = send(fs_sock, (void*) (buf + sent_data), len - sent_data, 0);
+		if(recently_sent_data == -1) {
+			cout << "error sending data" << endl;
+			break;
+		}
+		sent_data += recently_sent_data;
+	}
 }

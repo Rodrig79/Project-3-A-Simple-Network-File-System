@@ -24,7 +24,6 @@ void Shell::mountNFS(string fs_loc) {
 	int split;
 	
 	split = fs_loc.find(":");
-	
 	name = fs_loc.substr(0, split);
 	port = fs_loc.substr(split + 1);
 	
@@ -92,7 +91,7 @@ void Shell::mkdir_rpc(string dname) {
 	send_message("mkdir " + name);
 	string server_message = "";
 	//recv (Socket s, char* buff, int length, int flags)
-	recv(cs_sock, server_message, 100, 0);
+	recv(cs_sock, server_message, 500, 0);
 
 }
 

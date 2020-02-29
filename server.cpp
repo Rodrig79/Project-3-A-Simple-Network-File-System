@@ -86,6 +86,7 @@ int main(int argc, char* argv[]) {
 		} else if (cmd == "cat") {
 			fs.cat(fname.c_str());
 		} else if(cmd == "head") {
+			cout << "$" << num << "$";
 			fs.head(fname.c_str(), stoi(num));
 		} else if(cmd == "rm") {
 			fs.rm(fname.c_str());

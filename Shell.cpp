@@ -89,7 +89,7 @@ void Shell::unmountNFS() {
 // Remote procedure call on mkdir
 void Shell::mkdir_rpc(string dname) {
 	send_message("mkdir " + name);
-	string server_message = "";
+	string server_message;
 	receive_message(server_message);
 	cout << server_message << endl;
 }

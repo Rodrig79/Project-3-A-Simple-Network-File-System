@@ -32,23 +32,38 @@ void Shell::mountNFS(string fs_loc) {
 	hints.ai_family = PF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	
-	cout << "getting address info" << endl;
-	if(getaddrinfo(name.c_str(), port.c_str(), &hints, &res) != 0)
-		cout << "getaddrinfo failed" << endl;
-	cout << "address info recieved" << endl;
+	cout << "Getting address info..." << endl;
+	if(getaddrinfo(name.c_str(), port.c_str(), &hints, &res) != 0){
+		cerr << "getaddrinfo failed." << endl;
+	} else {
+	cout << "Address info recieved." << endl;
+	}
 	//cout << res -> ai_family << endl;
 	//res = 0x6 DEFINITELY a wrong location
 	cout << res << endl;
-	cout << "creating socket" << endl;
+	cout << "Creating socket..." << endl;
 	sockfd = socket(res -> ai_family, res -> ai_socktype, res -> ai_protocol);
 	//sockfd = socket(PF_INET, SOCK_STREAM, 0);
-	cout << "socket created" << endl;
 	
-	cout << "attempting to connect" << endl;
-	if(connect(sockfd, res -> ai_addr, res -> ai_addrlen) == -1)
-		cout << "connection failed" << endl;
+	 if (sockfd < 0)
+ 	 {
+   	 cerr << "Socket Creation Error." << endl;
+ 	 }
+ 	 else{
+  	 cout << "Socket created successfully" << endl;
+  	}
 	
-	cout << "connected" << endl;
+	cout << "Attempting to connect..." << endl;
+	if(connect(sockfd, res -> ai_addr, res -> ai_addrlen) == -1){
+		cerr << "Connection failed" << endl;
+	}
+	else{
+		cout << "connected" << endl;
+		is_mounted = true;
+	}
+	cs_sock = sockfd;
+
+	
 	/*
 	char buf[] = "Hello from client";
 	char buf2[17] = "failed";
@@ -62,8 +77,6 @@ void Shell::mountNFS(string fs_loc) {
 	cout << buf << endl;
 	cout << "------------------" << endl;
 	*/
-	cs_sock = sockfd;
-	is_mounted = true;
 }
 
 // Unmount the network file system if it was mounted

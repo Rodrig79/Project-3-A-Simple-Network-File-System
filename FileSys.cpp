@@ -290,17 +290,26 @@ void FileSys::rm(const char *name)
 // display stats about file or directory
 void FileSys::stat(const char *name)
 {
-}
-
-// HELPER FUNCTIONS (optional)
-short FileSys::get_block_index(const char* name) {
-	for(int i = 0; i < curr_dir_block.num_entries; i++) {
-		if(std::strcmp(curr_dir_block.dir_entries[i].name, name))
-			return i;
-	}
-	return -1;
-}
-
+	dirblock_t block;
+	short inode_index;
+	if (inode_index = get_block_index(name) == -1){
+		send_message(ERR_503);
+		return;
+		}
+	bfs.read_block(curr_dir_block.dir_entries[inode_index].block_num, &block);  
+	if (block.magic == DIR_MAGIC_NUM){
+		send_message("FileName:     " << name);
+		send_message("blockNumber:     " << d.block_num);
+	}else{
+	inode_t b;
+	bfs.read_block(curr_dir_block.dir_entries[inode_index].block_num, &block);
+	send_message("inode Block:     " << inode_index);
+	send_message("Bytes in file:     " << block.size
+	send_message ("number of blocks     " << (block.size /BLOCK_SIZE))
+	send_message("first number of blocks     " << block.blocks[0])
+    }
+} 
+		     
 void FileSys::send_message(std::string message) {
 	
 }

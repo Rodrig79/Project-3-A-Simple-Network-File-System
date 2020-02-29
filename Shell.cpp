@@ -90,6 +90,10 @@ void Shell::unmountNFS() {
 // Remote procedure call on mkdir
 void Shell::mkdir_rpc(string dname) {
 	send_message("mkdir " + name);
+	string server_message = "";
+	//recv (Socket s, char* buff, int length, int flags)
+	recv(cs_sock, server_message, 100, 0);
+
 }
 
 // Remote procedure call on cd

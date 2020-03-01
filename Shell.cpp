@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <string>
+#include <climits>
 using namespace std;
 
 #include "Shell.h"
@@ -17,11 +18,11 @@ static const string PROMPT_STRING = "NFS> ";	// shell prompt
 void Shell::mountNFS(string fs_loc) {
 	//create the socket cs_sock and connect it to the server and port specified in fs_loc
 	//if all the above operations are completed successfully, set is_mounted to true  
-	cout << "starting mount" << endl;
-	struct addrinfo hints, *res;
+	struct addrinfo hints, *result, *p;
 	int sockfd;
 	string name, port;
 	int split;
+	bool failed = false;
 	
 	split = fs_loc.find(":");
 	
@@ -32,57 +33,40 @@ void Shell::mountNFS(string fs_loc) {
 	hints.ai_family = PF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	
-	cout << "Getting address info..." << endl;
-	if(getaddrinfo(name.c_str(), port.c_str(), &hints, &res) != 0){
-		cerr << "getaddrinfo failed." << endl;
-	} else {
-	cout << "Address info recieved." << endl;
+	if(getaddrinfo(name.c_str(), port.c_str(), &hints, &result) != 0) {
+		cout << "getaddrinfo failed" << endl;
+		failed = true;
 	}
-
-	//cout << res -> ai_family << endl;
-	//res = 0x6 DEFINITELY a wrong location
-	cout << res << endl;
-	cout << "creating socket" << endl;
-	sockfd = socket(res -> ai_family, res -> ai_socktype, res -> ai_protocol);
-	//sockfd = socket(PF_INET, SOCK_STREAM, 0);
-	cout << "Creating socket..." << endl;
 	
-	 if (sockfd < 0)
- 	 {
-   	 cerr << "Socket Creation Error." << endl;
- 	 }
- 	 else{
-  	 cout << "Socket created successfully" << endl;
-  	}
+	//iterate through results to find one we can connect to
+	for(p = result; p != NULL; p = p -> ai_next) {
+		if((sockfd = socket(p -> ai_family, p -> ai_socktype, p -> ai_protocol)) == -1) {
+			perror("socket");
+		} else {
+			if(connect(sockfd, p -> ai_addr, p -> ai_addrlen) == -1) {
+				perror("connect");
+			} else {
+				break;
+			}
+		}
+	}
 	
-	cout << "Attempting to connect..." << endl;
-	if(connect(sockfd, res -> ai_addr, res -> ai_addrlen) == -1){
-		cerr << "Connection failed" << endl;
-	}else{
-		cout << "connected" << endl;
-		is_mounted = true;
+	if(p == NULL) {
+		cout << "couldn't find any sockets to connect to" << endl;
+		failed = true;
 	}
 	
 	cs_sock = sockfd;
-	/*
-	char buf[] = "Hello from client";
-	char buf2[17] = "failed";
+	if(!failed)
+		is_mounted = true;
 	
-	cout << "sending message" << endl;
-	send(sockfd, (void*) buf, 17, 0);
-	cout << "message sent, trying to recieve" << endl;
-	recv(sockfd, (void*) buf2, 100, 0);
-	cout << "recieved message" << endl;
-	
-	cout << buf << endl;
-	cout << "------------------" << endl;
-	*/
+	freeaddrinfo(result);
 }
 
 // Unmount the network file system if it was mounted
 void Shell::unmountNFS() {
-	if(is_mounted)
-		close(cs_sock);
+	if(is_mounted && (close(cs_sock) == -1))
+		cout << "ran into an issue while closing" << endl;
 	is_mounted = false;
 	// close the socket if it was mounted
 }
@@ -91,7 +75,7 @@ void Shell::unmountNFS() {
 void Shell::mkdir_rpc(string dname) {
 	send_message("mkdir " + dname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -99,7 +83,7 @@ void Shell::mkdir_rpc(string dname) {
 void Shell::cd_rpc(string dname) {
 	send_message("cd " + dname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -107,7 +91,7 @@ void Shell::cd_rpc(string dname) {
 void Shell::home_rpc() {
 	send_message("home");
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -115,7 +99,7 @@ void Shell::home_rpc() {
 void Shell::rmdir_rpc(string dname) {
 	send_message("rmdir " + dname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -123,7 +107,7 @@ void Shell::rmdir_rpc(string dname) {
 void Shell::ls_rpc() {
 	send_message("ls");
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -131,7 +115,7 @@ void Shell::ls_rpc() {
 void Shell::create_rpc(string fname) {
 	send_message("create " + fname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -139,7 +123,7 @@ void Shell::create_rpc(string fname) {
 void Shell::append_rpc(string fname, string data) {
 	send_message("append " + fname + " " + data);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -147,7 +131,7 @@ void Shell::append_rpc(string fname, string data) {
 void Shell::cat_rpc(string fname) {
 	send_message("cat " + fname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -157,7 +141,7 @@ void Shell::head_rpc(string fname, int n) {
 	s << "head " << fname << " " << n;
 	send_message(s.str());
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -165,7 +149,7 @@ void Shell::head_rpc(string fname, int n) {
 void Shell::rm_rpc(string fname) {
 	send_message("rm " + fname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
@@ -173,14 +157,14 @@ void Shell::rm_rpc(string fname) {
 void Shell::stat_rpc(string fname) {
 	send_message("stat " + fname);
 	string msg;
-	recieve_message(msg);
+	receive_message(msg);
 	cout << msg << endl;
 }
 
 //attempts to send the entire message to cs_sock
 void Shell::send_message(string message) {
 	const char* buf = (message + "\r\n").c_str();
-	int len = message.length();
+	int len = message.length() + 2;
 	int sent_data = 0;
 	int recently_sent_data = 0;
 	while(sent_data < len){
@@ -193,35 +177,44 @@ void Shell::send_message(string message) {
 	}
 }
 
-//recieves a message from cs_sock
-void Shell::recieve_message(string &message) {
-	cout << "starting recieve message" << endl;
+//receives a message from cs_sock
+void Shell::receive_message(string & message) {
 	char buf[100];
 	message = "";
-	int recently_recieved_data = 0;
-	string recently_recieved_string = "";
-	while(true) {
-		recently_recieved_data = recv(cs_sock, (void*) buf, 100, 0);
-		cout << "recieved" << endl;
-		if(recently_recieved_data == -1) {
-			cout << "error recieving data" << endl;
+	int line_count = 0;
+	int recently_received_data = 0;
+	int final_msg_len = INT_MAX;
+	int final_msg_count = 0;
+	string recently_received_string = "";
+	string status = "";
+	
+	while(final_msg_count < final_msg_len) {
+		int msg_break = 0;
+		
+		if((recently_received_data = recv(cs_sock, (void*) buf, 100, 0)) == -1) {
+			cout << "error receiving data" << endl;
 			break;
 		}
-		buf[recently_recieved_data] = '\0';
-		recently_recieved_string = string(buf);
-		//make this faster somehow
-		/*
-		if(recently_recieved_string.find("\r\n"))
-			break;
-		*/
-		//cout << message.find("\r\n") << endl;
-		if(message.find("\r\n") >= 0)
-			break;
-		message += recently_recieved_string;
-		//cout << "CURRENTLY RECIEVED: " << message << endl;
+		buf[recently_received_data] = '\0';
+		recently_received_string = string(buf);
+		message += recently_received_string;
+		if(line_count == 3)
+			final_msg_count += recently_received_data;
+		msg_break = message.find("\r\n");
+		while(msg_break >= 0) {
+			if(line_count == 0)
+				status = message.substr(0, msg_break);
+			if(line_count == 1)
+				final_msg_len = stoi(message.substr(8, msg_break - 8));
+			message = message.substr(msg_break + 2);
+			if(line_count == 2)
+				final_msg_count = message.length();
+			line_count++;
+			msg_break = message.find("\r\n");
+		}
 	}
-	message += recently_recieved_string;
-	//cout << "ended recieve message with message recieved as: " << message << endl;
+	if(final_msg_len == 0)
+		message = status;
 }
 
 // Executes the shell until the user quits.
@@ -239,7 +232,7 @@ void Shell::run()
     string command_str;
     cout << PROMPT_STRING;
     getline(cin, command_str);
-	cout << "your input was: " << command_str << endl;
+	
     // execute the command
     user_quit = execute_command(command_str);
   }
@@ -282,7 +275,6 @@ void Shell::run_script(char *file_name)
 // Executes the command. Returns true for quit and false otherwise.
 bool Shell::execute_command(string command_str)
 {
-	cout << "calling execute_command" << endl;
   // parse the command line
   struct Command command = parse_command(command_str);
 
@@ -303,7 +295,6 @@ bool Shell::execute_command(string command_str)
     rmdir_rpc(command.file_name);
   }
   else if (command.name == "ls") {
-	  cout << "calling ls_rpc()" << endl;
     ls_rpc();
   }
   else if (command.name == "create") {

@@ -6,6 +6,7 @@
 
 #include "BasicFileSys.h"
 #include "Blocks.h"
+#include <string>
 
 class FileSys {
   

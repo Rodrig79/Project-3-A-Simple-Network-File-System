@@ -22,53 +22,70 @@ int main(int argc, char* argv[]) {
     int port = atoi(argv[1]);
 	
 	socklen_t addr_size;
-	struct addrinfo hints, *res;
+	struct addrinfo hints, *result, *p;
 	struct sockaddr_storage their_addr;
 	int sockfd, accepted_fd;
     //networking part: create the socket and accept the client connection
+	
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = PF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 	
-	if(getaddrinfo(NULL, argv[1], &hints, &res) != 0)
+	if(getaddrinfo(NULL, argv[1], &hints, &result) != 0)
 		cout << "getaddrinfo failed" << endl;
-	//cout << res << endl;
-	//cout << "server name is: -" << res -> ai_canonname << "-"<< endl;
 
-	sockfd = socket(res -> ai_family, res -> ai_socktype, res -> ai_protocol);
+	for(p = result; p != NULL; p = p -> ai_next) {
+		if((sockfd = socket(p -> ai_family, p -> ai_socktype, p -> ai_protocol)) == -1){
+			perror("socket");
+		} else {
+			if(bind(sockfd, p -> ai_addr, p -> ai_addrlen) != 0){
+				perror("connect");
+			} else {
+				break;
+			}
+		}
+	}
 	
-	if(bind(sockfd, res -> ai_addr, res -> ai_addrlen) != 0)
-		cout << "bind failed" << endl;
-	if(listen(sockfd, 0) != 0) // create an acceptable backlog ??? increase???
-		cout << "listen failed" << endl;
+	if(p == NULL) {
+		cout << "couldn't find any sockets to bind to" << endl;
+	}
+	
+	if(listen(sockfd, 0) != 0) {
+		cout << "listening on socket failed" << endl;
+	}
+	
 	addr_size = sizeof their_addr;
-	accepted_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-	//can communicate
+	if((accepted_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size)) == -1) {
+		cout << "failed to accept connection" << endl;
+	}
+	
+	freeaddrinfo(result);
 
     //mount the file system
     FileSys fs;
-    fs.mount(accepted_fd); //assume that sock is the new socket created 
+    fs.mount(accepted_fd); //assume that accepted_fd is the new socket created 
                     //for a TCP connection between the client and the server.   
  
     //loop: get the command from the client and invoke the file
     //system operation which returns the results or error messages back to the clinet
     //until the client closes the TCP connection.
-	cout << "server using socket_fd of: " << accepted_fd << endl;
 	string full_cmd = "";
 	string cmd = "";
 	string fname = "";
 	string num = "";
 	while(true) {
 		recieve_message(accepted_fd, full_cmd);
-		cout << "recieved " << full_cmd << endl;
 		istringstream msg(full_cmd);
+		
+		//load command args into strings
 		if(msg >> cmd){
 			if(msg >> fname){
 				msg >> num;
 			}
 		}
-		cout << "calling command now" << endl;
+		
+		//determine which file system command to execute
 		if(cmd == "mkdir") {
 			fs.mkdir(fname.c_str());
 		} else if (cmd == "cd") {
@@ -96,11 +113,6 @@ int main(int argc, char* argv[]) {
 			send_message(accepted_fd, "Invalid Command");
 		}
 	}
-	/*
-	char buf[100];
-	int chars_recieved = recv(accepted_fd, (void*) buf, 100, 0);
-	send(accepted_fd, (void*) buf, chars_recieved, 0);
-	*/
     //close the listening socket
 	close(accepted_fd);
     //unmout the file system
@@ -122,11 +134,6 @@ void recieve_message(int socket, string &message) {
 		}
 		buf[recently_recieved_data] = '\0';
 		recently_recieved_string = string(buf);
-		//make this faster somehow
-		/*
-		if(recently_recieved_string.find("\r\n"))
-			break;
-		*/
 		if(message.find("\r\n") >= 0)
 			break;
 		message += recently_recieved_string;
@@ -136,7 +143,7 @@ void recieve_message(int socket, string &message) {
 
 void send_message(int socket, string message) {
 	const char* buf = (message + "\r\n").c_str();
-	int len = message.length();
+	int len = message.length() + 2;
 	int sent_data = 0;
 	int recently_sent_data = 0;
 	while(sent_data < len){

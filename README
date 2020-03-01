@@ -1,33 +1,368 @@
 //// Each team member's name and contributions ////////////
-Nick 
-• 
-• 
-• 
 
 Eddie Avendaño
-• 
-• 
-•
+• Designed some FileSys.cpp methods
+• Debugged/tested server & client
+• Reserved study room for team meetings
 
 Marco Rodriguez
 • Worked on Shell.cpp and Shell.h
 • Created and edited Readme File
 • Organized group members over github
 
+Nicholas Doubrovsky
+• Headed the work on FileSys.cpp
+• Helped get server & client working
+• Thourough debugging and testing
 
 //// My own rating on the functionality ///////////////////
 Rating: A, B, C, D, or F?
+A
 Explanation: 
-...
-
-
-
+The file system works as intended and completes all test examples provided by the assignment pdf
+along with all tests provided below. The majority of test cases were performed in many different situations
+including edge cases such as files being almost or completely full and the disk being almost or completely full.
+A large number of edge case bugs have been found so there should be extremally few if any bugs in the functionality
+of the file system.
 
 //// Test cases ///////////////////////////////////////////
+All of these commands were done in this exact order
+
+Eddie's tests
 Test case #1: mkdir abc
-Results: 
+Results:NFS> success
+
+Test case #2: create file1
+Results:NFS>success
+
+Test case #3: ls
+Results:NFS>abc file1
+
+Test case #4:append abc helloworld!
+Results:NFS>501 File is a directory
 
 
-Test case #2: 
+Test case #5:cd file1
+Results:NFS>500 File is not a directory
 
-...
+
+Test case #6:cd abc
+Results:NFS>success
+
+Test case #7: ls
+Results:NFS>empty folder
+
+Test case #8: create file1 (now in directory abc)
+Results:NFS>success
+
+Test case #9:append file1 helloworld!
+Results:NFS>success
+
+Test case #10:cat file1
+Results:NFS>helloworld!
+
+
+Test case #11: state file1 
+Results:NFS>
+Inode block: 5
+Bytes in file: 11
+number of blocks:2
+first block: 7
+
+Test case #12 head file1 5
+Results:NFS>hello
+
+Test case #13 create file1
+Results:NFS>502 file exists
+
+Test case #14 mkdir dir2
+Results:NFS>success
+
+Test case 15: stat dir2
+Results:NFS>
+Directory name:     dir2/
+directory block:     6
+
+test case #14 home
+NFS>success
+
+test case #15: rmdir abc
+Results:NFS>507 Directory is not empty
+
+Test case #15 rm file1 
+Results:NFS>success
+
+test case #15 
+
+Test case #15 append file1 goodbye!
+Results:NFS>503  File does not exist
+
+Test case #16 create this_name_is_too_long_for_a_file
+Results:NFS>504 file name is too long
+
+
+Test case #17 (creating more then 10 files in a directory)
+Results:NFS>505 Disk is full
+
+Test case #17 (creating more then 10 files in a directory)
+Results:NFS>506 Directory is full
+
+Test case #17 appending 
+Results:NFS>508 Directory is full
+
+Nick's tests
+New FS was started here
+-------------
+NFS> create toolongname
+504 File name is too long
+
+NFS> mkdir toolongname
+504 File name is too long
+
+NFS> create f
+success
+
+NFS> cat f
+
+
+NFS> head f 5
+
+
+
+NFS> create f
+502 File exists
+
+NFS> cd f
+500 File is not a directory
+
+NFS> stat f
+Inode block: 2
+Bytes in file: 0
+Number of Blocks: 1
+First block: 0
+
+NFS> append f <80 character long string>
+success
+
+NFS> cat f
+<same 80 character long string>
+
+NFS> head f 81
+<same 80 character long string>
+
+NFS> head f 5
+10101
+
+NFS> stat f
+Inode block: 2
+Bytes in file: 80
+Number of blocks: 2
+First block: 3
+
+This command was repeated 94 times:
+NFS> append f <80 character long string>
+All 94 results were the same
+success
+
+NFS> stat f
+Inode block: 2
+Bytes in file: 7600
+Number of blocks: 61
+First block: 3
+
+NFS> append f <78 character long string>
+success
+
+NFS> stat f
+Inode block: 2
+Bytes in file: 7678
+Number of blocks: 61
+First block: 3
+
+NFS> append f 01
+success
+
+These two tests were not performed sequentially rather each one was run with identical
+starting conditions in a seperate session from the other, both give the same results after their initial responses
+------------------------------
+NFS> append f 01
+success
+
+NFS> append f hello
+508 Append exceeds maximum file size
+-------------------------------
+
+NFS> stat f
+Inode block: 2
+Bytes in file: 7680
+Number of blocks: 61
+First block: 3
+
+NFS> append f 01
+508 Append exceeds maximum file size
+
+NFS> stat f
+Inode block: 2
+Bytes in file: 7680
+Number of blocks: 61
+First block: 3
+
+NFS> rm f
+success
+
+NFS> ls
+empty folder
+
+NFS> mkdir test
+success
+
+NFS> stat test
+Directory name: test/
+Directory block: 2
+
+NFS> cd test
+success
+
+NFS> ls
+empty folder
+
+NFS> create file
+success
+
+NFS> mkdir dir
+success
+
+NFS> ls
+file dir/
+
+NFS> stat dir
+Directory name: dir/
+Directory block: 4
+
+NFS> home
+success
+
+NFS> rmdir test
+507 Directory is not empty
+
+NFS> cd test
+success
+
+NFS> rmdir file
+500 File is not a directory
+
+NFS> rm dir
+501 File is a directory
+
+NFS> rm file
+success
+
+NFS> rmdir dir
+success
+
+NFS> ls
+empty folder
+
+NFS> home
+success
+
+NFS> rmdir badname
+503 File does not exist
+
+NFS> rm badname
+503 File does not exist
+
+NFS> rmdir test
+success
+
+NFS> mkdir test
+success
+
+NFS> mkdir test
+502 File exists
+
+mkdir <dirname> was repeated with different names until the directory contained 10 directories, all responded success
+
+NFS> mkdir test11
+506 Directory is full
+
+NFS> create test11
+506 Directory is full
+
+NFS> cd test11
+503 File does not exist
+
+NFS> cd test
+success
+
+NFS> mkdir test
+success
+
+these last two test cases were repeated a little over 1000 times
+
+NFS> stat test
+Directory name: test/
+Directory block: 1021
+
+NFS> create file
+success
+
+NFS> stat file
+Inode block: 1022
+Bytes in file: 0
+Number of blocks: 0
+First block: 0
+
+NFS> append file <80 character long string>
+success
+
+NFS> stat file
+Inode block: 1022
+Bytes in file: 80
+Number of blocks: 2
+First block: 1023
+
+NFS> append file <80 character long string>
+505 Disk is full
+
+NFS> create file2
+505 Disk is full
+
+NFS> mkdir test2
+505 Disk is full
+
+NFS> rm file
+success
+
+NFS> mkdir test2
+success
+
+NFS> mkdir test3
+success
+
+NFS> mkdir test4
+505 Disk is full
+
+NFS> rmdir test3
+success
+
+NFS> cat test
+501 File is a directory
+
+NFS> head test 5
+501 File is a directory
+
+NFS> append test hello
+501 File is a directory
+
+NFS> cat notafile
+503 File does not exist
+
+NFS> head notafile 5
+503 File does not exist
+
+NFS> append notafile hello
+503 File does not exist
+
+NFS> stat notafile
+503 File does not exist

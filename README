@@ -78,36 +78,34 @@ Results:NFS>502 file exists
 Test case #14 mkdir dir2
 Results:NFS>success
 
-Test case 15: stat dir2
+Test case #15: stat dir2
 Results:NFS>
 Directory name:     dir2/
 directory block:     6
 
-test case #14 home
+test case #16 home
 NFS>success
 
-test case #15: rmdir abc
+test case #17: rmdir abc
 Results:NFS>507 Directory is not empty
 
-Test case #15 rm file1 
+Test case #18 rm file1 
 Results:NFS>success
 
-test case #15 
-
-Test case #15 append file1 goodbye!
+Test case #19 append file1 goodbye!
 Results:NFS>503  File does not exist
 
-Test case #16 create this_name_is_too_long_for_a_file
+Test case #20 create this_name_is_too_long_for_a_file
 Results:NFS>504 file name is too long
 
 
-Test case #17 (creating more then 10 files in a directory)
+Test case #21 (creating more then 10 files in a directory)
 Results:NFS>505 Disk is full
 
-Test case #17 (creating more then 10 files in a directory)
+Test case #22 (creating more then 10 files in a directory)
 Results:NFS>506 Directory is full
 
-Test case #17 appending 
+Test case #23 appending 
 Results:NFS>508 Directory is full
 
 Nick's tests
@@ -126,7 +124,6 @@ NFS> cat f
 
 
 NFS> head f 5
-
 
 
 NFS> create f
